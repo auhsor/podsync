@@ -71,6 +71,10 @@ func (u *Manager) Update(ctx context.Context, feedConfig *feed.Config) error {
 		return errors.Wrap(err, "download failed")
 	}
 
+	if err := u.checkCache(ctx, feedConfig); err != nil {
+		log.WithError(err).Error("check cache failed")
+	}
+
 	if err := u.cleanup(ctx, feedConfig); err != nil {
 		log.WithError(err).Error("cleanup failed")
 	}
@@ -117,7 +121,7 @@ func (u *Manager) updateFeed(ctx context.Context, feedConfig *feed.Config) error
 
 	episodeSet := make(map[string]struct{})
 	if err := u.db.WalkEpisodes(ctx, feedConfig.ID, func(episode *model.Episode) error {
-		if episode.Status != model.EpisodeDownloaded && episode.Status != model.EpisodeCleaned {
+		if episode.Status != model.EpisodeDownloaded && episode.Status != model.EpisodeCleaned && episode.Status != model.EpisodeCached {
 			episodeSet[episode.ID] = struct{}{}
 		}
 		return nil
@@ -211,7 +215,7 @@ func (u *Manager) downloadEpisodes(ctx context.Context, feedConfig *feed.Config)
 			// File already exists, update file status and disk size
 			if err := u.db.UpdateEpisode(feedID, episode.ID, func(episode *model.Episode) error {
 				episode.Size = size
-				episode.Status = model.EpisodeDownloaded
+				episode.Status = model.EpisodeCached
 				return nil
 			}); err != nil {
 				logger.WithError(err).Error("failed to update file info")
@@ -264,7 +268,7 @@ func (u *Manager) downloadEpisodes(ctx context.Context, feedConfig *feed.Config)
 		logger.Infof("successfully downloaded file %q", episode.ID)
 		if err := u.db.UpdateEpisode(feedID, episode.ID, func(episode *model.Episode) error {
 			episode.Size = fileSize
-			episode.Status = model.EpisodeDownloaded
+			episode.Status = model.EpisodeCached
 			return nil
 		}); err != nil {
 			return err
@@ -375,6 +379,53 @@ func (u *Manager) cleanup(ctx context.Context, feedConfig *feed.Config) error {
 		}); err != nil {
 			result = multierror.Append(result, errors.Wrapf(err, "failed to set state for cleaned episode: %s", episode.ID))
 			continue
+		}
+	}
+
+	return result.ErrorOrNil()
+}
+
+func (u *Manager) checkCache(ctx context.Context, feedConfig *feed.Config) error {
+	var (
+		feedID        = feedConfig.ID
+		logger        = log.WithField("feed_id", feedID)
+		list          []*model.Episode
+		result        *multierror.Error
+		PublishNumber = feedConfig.PublishNumber
+		publishCount  = 0
+	)
+	log.Infof("checking cached episodes")
+
+	//Create a temporary list of cached episodes
+	if err := u.db.WalkEpisodes(ctx, feedConfig.ID, func(episode *model.Episode) error {
+		if episode.Status == model.EpisodeCached {
+			list = append(list, episode)
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	//Sort the list to put the oldest at the top to be processed first
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].PubDate.Before(list[j].PubDate)
+	})
+
+	for _, episode := range list {
+		if publishCount >= PublishNumber {
+			logger.Infof("publish number exceeded - skipping")
+			return nil
+		} else {
+			//Update the episode status
+			if err := u.db.UpdateEpisode(feedID, episode.ID, func(episode *model.Episode) error {
+				episode.Status = model.EpisodeDownloaded
+				log.Infof("changing status from cached to downloaded")
+				return nil
+			}); err != nil {
+				return err
+			}
+			publishCount++
 		}
 	}
 

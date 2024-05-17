@@ -55,6 +55,7 @@ type Feed struct {
 	Quality         Quality    `json:"quality"`
 	CoverArtQuality Quality    `json:"cover_art_quality"`
 	PageSize        int        `json:"page_size"`
+	PublishNumber   int        `json:"publish_number"`
 	CoverArt        string     `json:"cover_art"`
 	Title           string     `json:"title"`
 	Description     string     `json:"description"`
@@ -72,6 +73,7 @@ type EpisodeStatus string
 const (
 	EpisodeNew        = EpisodeStatus("new")        // New episode received via API
 	EpisodeDownloaded = EpisodeStatus("downloaded") // Downloaded, encoded and available for download
+	EpisodeCached     = EpisodeStatus("cached")     // Downloaded, but not added to feed yet
 	EpisodeError      = EpisodeStatus("error")      // Could not download, will retry
 	EpisodeCleaned    = EpisodeStatus("cleaned")    // Downloaded and later removed from disk due to update strategy
 )

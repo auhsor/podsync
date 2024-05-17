@@ -14,6 +14,8 @@ type Config struct {
 	// PageSize is the number of pages to query from YouTube API.
 	// NOTE: larger page sizes/often requests might drain your API token.
 	PageSize int `toml:"page_size"`
+	//PublishNumber is the amount of podcasts to publish at each cycle
+	PublishNumber int `toml:"publish_number"`
 	// UpdatePeriod is how often to check for updates.
 	// Format is "300ms", "1.5h" or "2h45m".
 	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".

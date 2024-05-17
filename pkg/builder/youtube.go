@@ -315,7 +315,7 @@ func (yt *YouTubeBuilder) queryVideoDescriptions(ctx context.Context, playlist m
 				return errors.Wrapf(err, "failed to parse video publish date: %s", dateStr)
 			}
 
-			// Sometimes YouTube retrun empty content defailt, use arbitrary one
+			// Sometimes YouTube returns empty content default, use arbitrary one
 			var seconds int64 = 1
 			if video.ContentDetails != nil {
 				// Parse duration

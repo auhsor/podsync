@@ -12,6 +12,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mxpv/podsync/pkg/model"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // sort.Interface implementation
@@ -42,6 +44,7 @@ func Build(_ctx context.Context, feed *model.Feed, cfg *Config, hostname string)
 		title       = feed.Title
 		description = feed.Description
 		feedLink    = feed.ItemURL
+		feedCount   = 0
 	)
 
 	if cfg.Custom.Author != "" {
@@ -109,8 +112,13 @@ func Build(_ctx context.Context, feed *model.Feed, cfg *Config, hostname string)
 	sort.Sort(timeSlice(feed.Episodes))
 
 	for i, episode := range feed.Episodes {
+
 		if episode.Status != model.EpisodeDownloaded {
 			// Skip episodes that are not yet downloaded or have been removed
+			log.Infof("Skipping this one %v", strconv.Itoa(i+1))
+			log.Infof("Skipping this one %v", episode.PubDate)
+			log.Infof("Skipping this one %v", episode.Title)
+			log.Infof("Skipping this one %v", episode.Status)
 			continue
 		}
 
@@ -121,7 +129,7 @@ func Build(_ctx context.Context, feed *model.Feed, cfg *Config, hostname string)
 			Description: episode.Description,
 			ISubtitle:   episode.Title,
 			// Some app prefer 1-based order
-			IOrder: strconv.Itoa(i + 1),
+			IOrder: strconv.Itoa(feedCount + 1),
 		}
 
 		item.AddPubDate(&episode.PubDate)
@@ -158,6 +166,12 @@ func Build(_ctx context.Context, feed *model.Feed, cfg *Config, hostname string)
 		if _, err := p.AddItem(item); err != nil {
 			return nil, errors.Wrapf(err, "failed to add item to podcast (id %q)", episode.ID)
 		}
+
+		log.Infof("P %v", strconv.Itoa(i+1))
+		log.Infof("P %v", episode.PubDate)
+		log.Infof("P %v", episode.Title)
+		log.Infof("P %v", episode.Status)
+		feedCount++
 	}
 
 	return &p, nil
