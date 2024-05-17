@@ -8,6 +8,7 @@ const (
 	DefaultFormat        = FormatVideo
 	DefaultQuality       = QualityHigh
 	DefaultPageSize      = 50
+	DefaultPublishNumber = 50
 	DefaultUpdatePeriod  = 6 * time.Hour
 	DefaultLogMaxSize    = 50 // megabytes
 	DefaultLogMaxAge     = 30 // days

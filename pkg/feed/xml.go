@@ -12,8 +12,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mxpv/podsync/pkg/model"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // sort.Interface implementation
@@ -110,15 +108,9 @@ func Build(_ctx context.Context, feed *model.Feed, cfg *Config, hostname string)
 
 	// Sort all episodes in descending order
 	sort.Sort(timeSlice(feed.Episodes))
-
-	for i, episode := range feed.Episodes {
-
+	for _, episode := range feed.Episodes {
 		if episode.Status != model.EpisodeDownloaded {
 			// Skip episodes that are not yet downloaded or have been removed
-			log.Infof("Skipping this one %v", strconv.Itoa(i+1))
-			log.Infof("Skipping this one %v", episode.PubDate)
-			log.Infof("Skipping this one %v", episode.Title)
-			log.Infof("Skipping this one %v", episode.Status)
 			continue
 		}
 
@@ -167,10 +159,6 @@ func Build(_ctx context.Context, feed *model.Feed, cfg *Config, hostname string)
 			return nil, errors.Wrapf(err, "failed to add item to podcast (id %q)", episode.ID)
 		}
 
-		log.Infof("P %v", strconv.Itoa(i+1))
-		log.Infof("P %v", episode.PubDate)
-		log.Infof("P %v", episode.Title)
-		log.Infof("P %v", episode.Status)
 		feedCount++
 	}
 

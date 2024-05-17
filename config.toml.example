@@ -54,6 +54,9 @@ vimeo = [ # Multiple keys will be rotated.
   # The number of episodes to query each update (keep in mind, that this might drain API token)
   page_size = 50
 
+  # The number of episodes to publish each update. Note that the episodes will be downloaded and cached regardless of this number.
+  publish_number = 5
+
   # How often query for updates, examples: "60m", "4h", "2h45m"
   update_period = "12h"
 

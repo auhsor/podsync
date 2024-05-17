@@ -176,6 +176,10 @@ func (c *Config) applyDefaults(configPath string) {
 			_feed.PageSize = model.DefaultPageSize
 		}
 
+		if _feed.PublishNumber == 0 {
+			_feed.PublishNumber = model.DefaultPublishNumber
+		}
+
 		if _feed.PlaylistSort == "" {
 			_feed.PlaylistSort = model.SortingAsc
 		}
