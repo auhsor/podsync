@@ -2,6 +2,7 @@ package ytdl
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,6 +24,25 @@ const (
 	DefaultDownloadTimeout = 10 * time.Minute
 	UpdatePeriod           = 24 * time.Hour
 )
+
+type PlaylistMetadataThumbnail struct {
+	Id         string `json:"id"`
+	Url        string `json:"url"`
+	Resolution string `json:"resolution"`
+	Width      int    `json:"width"`
+	Height     int    `json:"height"`
+}
+
+type PlaylistMetadata struct {
+	Id          string                      `json:"id"`
+	Title       string                      `json:"title"`
+	Description string                      `json:"description"`
+	Thumbnails  []PlaylistMetadataThumbnail `json:"thumbnails"`
+	Channel     string                      `json:"channel"`
+	ChannelId   string                      `json:"channel_id"`
+	ChannelUrl  string                      `json:"channel_url"`
+	WebpageUrl  string                      `json:"webpage_url"`
+}
 
 var (
 	ErrTooManyRequests = errors.New(http.StatusText(http.StatusTooManyRequests))
@@ -156,6 +176,35 @@ func (dl *YoutubeDl) Update(ctx context.Context) error {
 	return nil
 }
 
+func (dl *YoutubeDl) PlaylistMetadata(ctx context.Context, url string) (metadata PlaylistMetadata, err error) {
+	log.Info("getting playlist metadata for: ", url)
+	args := []string{
+		"--playlist-items", "0",
+		"-J",            // JSON output
+		"-q",            // quiet mode
+		"--no-warnings", // suppress warnings
+		url,
+	}
+	dl.updateLock.Lock()
+	defer dl.updateLock.Unlock()
+	output, err := dl.exec(ctx, args...)
+	if err != nil {
+		log.WithError(err).Errorf("youtube-dl error: %s", url)
+
+		// YouTube might block host with HTTP Error 429: Too Many Requests
+		if strings.Contains(output, "HTTP Error 429") {
+			return PlaylistMetadata{}, ErrTooManyRequests
+		}
+
+		log.Error(output)
+		return PlaylistMetadata{}, errors.New(output)
+	}
+
+	var playlistMetadata PlaylistMetadata
+	json.Unmarshal([]byte(output), &playlistMetadata)
+	return playlistMetadata, nil
+}
+
 func (dl *YoutubeDl) Download(ctx context.Context, feedConfig *feed.Config, episode *model.Episode) (r io.ReadCloser, err error) {
 	tmpDir, err := os.MkdirTemp("", "podsync-")
 	if err != nil {
@@ -227,7 +276,8 @@ func (dl *YoutubeDl) exec(ctx context.Context, args ...string) (string, error) {
 func buildArgs(feedConfig *feed.Config, episode *model.Episode, outputFilePath string) []string {
 	var args []string
 
-	if feedConfig.Format == model.FormatVideo {
+	switch feedConfig.Format {
+	case model.FormatVideo:
 		// Video, mp4, high by default
 
 		format := "bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1]/best[ext=mp4]/best"
@@ -239,7 +289,8 @@ func buildArgs(feedConfig *feed.Config, episode *model.Episode, outputFilePath s
 		}
 
 		args = append(args, "--format", format)
-	} else if feedConfig.Format == model.FormatAudio {
+
+	case model.FormatAudio:
 		// Audio, mp3, high by default
 		format := "bestaudio"
 		if feedConfig.Quality == model.QualityLow {
@@ -247,7 +298,8 @@ func buildArgs(feedConfig *feed.Config, episode *model.Episode, outputFilePath s
 		}
 
 		args = append(args, "--extract-audio", "--audio-format", "mp3", "--format", format)
-	} else {
+
+	default:
 		args = append(args, "--audio-format", feedConfig.CustomFormat.Extension, "--format", feedConfig.CustomFormat.YouTubeDLFormat)
 	}
 

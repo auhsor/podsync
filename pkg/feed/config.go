@@ -35,7 +35,7 @@ type Config struct {
 	// Only download episodes that match the filters (defaults to matching anything)
 	Filters Filters `toml:"filters"`
 	// Clean is a cleanup policy to use for this feed
-	Clean Cleanup `toml:"clean"`
+	Clean *Cleanup `toml:"clean"`
 	// Custom is a list of feed customizations
 	Custom Custom `toml:"custom"`
 	// List of additional youtube-dl arguments passed at download time
@@ -61,6 +61,7 @@ type Filters struct {
 	MinDuration    int64  `toml:"min_duration"`
 	MaxDuration    int64  `toml:"max_duration"`
 	MaxAge         int    `toml:"max_age"`
+	MinAge         int    `toml:"min_age"`
 	// More filters to be added here
 }
 

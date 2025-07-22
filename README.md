@@ -8,7 +8,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/mxpv/podsync)](https://goreportcard.com/report/github.com/mxpv/podsync)
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/mxpv)](https://github.com/sponsors/mxpv)
 [![Patreon](https://img.shields.io/badge/support-patreon-E6461A.svg)](https://www.patreon.com/podsync)
-[![Twitter Follow](https://img.shields.io/twitter/follow/pod_sync?style=social)](https://twitter.com/pod_sync)
 
 Podsync - is a simple, free service that lets you listen to any YouTube / Vimeo channels, playlists or user videos in
 podcast format.
@@ -31,17 +30,17 @@ any device in podcast client.
 - One-click deployment for AWS.
 - Runs on Windows, Mac OS, Linux, and Docker.
 - Supports ARM.
-- Automatic youtube-dl self update.
+- Automatic yt-dlp self update.
 - Supports API keys rotation.
 
 ## Dependencies
 
 If you're running the CLI as binary (e.g. not via Docker), you need to make sure that dependencies are available on
-your system. Currently, Podsync depends on `youtube-dl` ,  `ffmpeg`, and `go`.
+your system. Currently, Podsync depends on `yt-dlp` ,  `ffmpeg`, and `go`.
 
 On Mac you can install those with `brew`:
 ```
-brew install youtube-dl ffmpeg go
+brew install yt-dlp ffmpeg go
 ```
 
 ## Documentation
@@ -79,7 +78,8 @@ port = 8080
 
 [storage]
   [storage.local]
-  data_dir = "/data/podsync/"
+  # Don't change if you run podsync via docker
+  data_dir = "/app/data/"
 
 [tokens]
 youtube = "PASTE YOUR API KEY HERE"
@@ -103,16 +103,12 @@ hostname = "https://my.test.host:4443"
 
 Server will be accessible from `http://localhost:8080`, but episode links will point to `https://my.test.host:4443/ID1/...`
 
-## One click deployment
-
-[![Deploy to AWS](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-1#/stacks/new?stackName=Podsync&templateURL=https://podsync-cf.s3.amazonaws.com/cloud_formation.yml)
-
 ## How to run
 
 
 ### Build and run as binary:
 
-Make sure you have created the file `config.toml`. Also note the location of the `data_dir`. Depending on the operating system, you may have to choose a different location since `/app/data` might be not writable. 
+Make sure you have created the file `config.toml`. Also note the location of the `data_dir`. Depending on the operating system, you may have to choose a different location since `/app/data` might be not writable.
 
 ```
 $ git clone https://github.com/mxpv/podsync
@@ -127,21 +123,35 @@ Use the editor [Visual Studio Code](https://code.visualstudio.com/) and install 
 
 
 ### Run via Docker:
+
 ```
-$ docker pull mxpv/podsync:latest
+$ docker pull ghcr.io/mxpv/podsync:latest
 $ docker run \
     -p 8080:8080 \
     -v $(pwd)/data:/app/data/ \
+    -v $(pwd)/db:/app/db/ \
     -v $(pwd)/config.toml:/app/config.toml \
-    mxpv/podsync:latest
+    ghcr.io/mxpv/podsync:latest
 ```
 
 ### Run via Docker Compose:
+
 ```
-$ docker-compose up
+$ cat docker-compose.yml
+services:
+  podsync:
+    image: ghcr.io/mxpv/podsync
+    container_name: podsync
+    volumes:
+      - ./data:/app/data/
+      - ./db:/app/db/
+      - ./config.toml:/app/config.toml
+    ports:
+      - 8080:8080
+
+$ docker compose up
 ```
 
 ## How to make a release
 
 Just push a git tag. CI will do the rest.
-

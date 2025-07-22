@@ -38,12 +38,16 @@ func Build(_ctx context.Context, feed *model.Feed, cfg *Config, hostname string)
 
 	var (
 		now         = time.Now().UTC()
-		author      = feed.Title
+		author      = feed.Author
 		title       = feed.Title
 		description = feed.Description
 		feedLink    = feed.ItemURL
 		feedCount   = 0
 	)
+
+	if author == "<notfound>" {
+		author = feed.Title
+	}
 
 	if cfg.Custom.Author != "" {
 		author = cfg.Custom.Author
@@ -180,21 +184,22 @@ func EpisodeName(feedConfig *Config, episode *model.Episode) string {
 func EnclosureFromExtension(feedConfig *Config) itunes.EnclosureType {
 	ext := feedConfig.CustomFormat.Extension
 
-	switch {
-	case ext == "m4a":
+	switch ext {
+	case "m4a":
 		return itunes.M4A
-	case ext == "m4v":
+	case "m4v":
 		return itunes.M4V
-	case ext == "mp4":
+	case "mp4":
 		return itunes.MP4
-	case ext == "mp3":
+	case "mp3":
 		return itunes.MP3
-	case ext == "mov":
+	case "mov":
 		return itunes.MOV
-	case ext == "pdf":
+	case "pdf":
 		return itunes.PDF
-	case ext == "epub":
+	case "epub":
 		return itunes.EPUB
+	default:
+		return -1
 	}
-	return -1
 }
